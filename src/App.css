@@ -1,0 +1,25 @@
+@media (max-width: 768px) {
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 8px;
+    }
+
+    .title {
+        margin-bottom: 8px;
+    }
+
+    .ant-layout-sider {
+        position: fixed;
+        z-index: 1000;
+        height: 100%;
+    }
+
+    .ant-layout {
+        margin-left: 0px;
+    }
+
+    .ant-layout-sider-collapsed + .ant-layout {
+        margin-left: 80px;
+    }
+}
