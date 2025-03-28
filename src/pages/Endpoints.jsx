@@ -7,7 +7,7 @@ const Endpoints = () => {
     return (
         <Content style={{ margin: "16px" }}>
             <h2>Endpoints & Connections</h2>
-            <p>Endpoint configuration will be displayed here.</p>
+            <p>In Progress</p>
         </Content>
     );
 };
