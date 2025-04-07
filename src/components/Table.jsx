@@ -1,5 +1,6 @@
-import React from "react";
-import { Table, Tag } from "antd";
+import React, { useState } from "react";
+import { Table, Tag, Dropdown, Menu, Button, Checkbox } from "antd";
+import { DownOutlined } from "@ant-design/icons";
 
 const data = [
     {
@@ -26,21 +27,31 @@ const data = [
 ];
 
 const DashboardTable = () => {
+    const [visibleColumns, setVisibleColumns] = useState({
+        messageDate: true,
+        responseID: true,
+        status: true,
+        productType: true,
+    });
+
     const columns = [
         {
             title: "Message Date",
             dataIndex: "messageDate",
             key: "messageDate",
+            visible: visibleColumns.messageDate,
         },
         {
             title: "Response ID",
             dataIndex: "responseID",
             key: "responseID",
+            visible: visibleColumns.responseID,
         },
         {
             title: "Status",
             dataIndex: "status",
             key: "status",
+            visible: visibleColumns.status,
             render: (status) => (
                 <Tag color={status === "FAILED" ? "red" : "green"}>{status}</Tag>
             ),
@@ -49,10 +60,46 @@ const DashboardTable = () => {
             title: "Product Type",
             dataIndex: "productType",
             key: "productType",
+            visible: visibleColumns.productType,
         },
     ];
 
-    return <Table columns={columns} dataSource={data} />;
+    const handleCheckboxChange = (columnKey) => {
+        setVisibleColumns((prev) => ({
+            ...prev,
+            [columnKey]: !prev[columnKey],
+        }));
+    };
+
+    const menu = (
+        <Menu>
+            {Object.keys(visibleColumns).map((columnKey) => (
+                <Menu.Item key={columnKey}>
+                    <Checkbox
+                        checked={visibleColumns[columnKey]}
+                        onChange={() => handleCheckboxChange(columnKey)}
+                    >
+                        {columnKey}
+                    </Checkbox>
+                </Menu.Item>
+            ))}
+        </Menu>
+    );
+
+    return (
+        <div>
+            <Dropdown overlay={menu} trigger={['click']}>
+                <Button>
+                    Select Columns <DownOutlined />
+                </Button>
+            </Dropdown>
+            <Table
+                columns={columns.filter((col) => visibleColumns[col.key])}
+                dataSource={data}
+                style={{ marginTop: 16 }}
+            />
+        </div>
+    );
 };
 
 export default DashboardTable;

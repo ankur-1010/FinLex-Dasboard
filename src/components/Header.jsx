@@ -1,27 +1,43 @@
 import React from "react";
-import { Layout, Avatar, Dropdown, Menu, Button, } from "antd";
+import { Layout, Avatar, Dropdown, Menu, Button } from "antd";
 import { UserOutlined, DownOutlined } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 
 const { Header } = Layout;
 
 const AppHeader = () => {
-    const menu = (
+    const navigate = useNavigate();
+
+    const myAppsMenu = (
         <Menu>
-            <Menu.Item>Profile</Menu.Item>
-            <Menu.Item>Logout</Menu.Item>
+            <Menu.Item key="1">App 1</Menu.Item>
+            <Menu.Item key="2">App 2</Menu.Item>
+        </Menu>
+    );
+
+    const handleNavigation = (path) => {
+        navigate(path);
+    };
+
+    const userMenu = (
+        <Menu>
+            <Menu.Item key="profile">Profile</Menu.Item>
+            <Menu.Item key="logout">Logout</Menu.Item>
         </Menu>
     );
 
     return (
         <Header className="header">
             <div className="title">
-                <Button type="text" danger>
-                    My Apps <DownOutlined />
-                </Button>
-                <Button>STPADMIN</Button>
-                <Button>STP</Button>
+                <Dropdown overlay={myAppsMenu} trigger={['click']}>
+                    <Button type="text" danger>
+                        My Apps <DownOutlined />
+                    </Button>
+                </Dropdown>
+                <Button onClick={() => handleNavigation("/stpadmin")}>STPADMIN</Button>
+                <Button onClick={() => handleNavigation("/stp")}>STP</Button>
             </div>
-            <Dropdown overlay={menu} placement="bottomRight">
+            <Dropdown overlay={userMenu} placement="bottomRight">
                 <Avatar icon={<UserOutlined />} />
             </Dropdown>
         </Header>

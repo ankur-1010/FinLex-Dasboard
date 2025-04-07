@@ -3,7 +3,13 @@ import { Layout } from "antd";
 
 const { Content } = Layout;
 
+
+
+
+
 const Endpoints = () => {
+
+
     return (
         <Content style={{ margin: "16px" }}>
             <h2>Endpoints & Connections</h2>
