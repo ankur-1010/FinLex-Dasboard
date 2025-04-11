@@ -1,0 +1,9 @@
+@media (max-width: 768px) {
+  .ant-row {
+      flex-direction: column;
+  }
+
+  .ant-col {
+      margin-bottom: 8px;
+  }
+}
