@@ -88,7 +88,7 @@ const DashboardTable = () => {
             </div>
         ),
         filterIcon: (filtered) => (
-            <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+            <SearchOutlined style={{ color: filtered ? " #a2250a " : undefined }} />
         ),
         onFilter: (value, record) =>
             record[dataIndex]?.toString().toLowerCase().includes(value.toLowerCase()),
@@ -268,7 +268,7 @@ const DashboardTable = () => {
                     columns={columns}
                     rowKey="tradeID"
                     scroll={{ x: 1500 }}
-                    pagination={{ pageSize: 10, position: ["bottomCenter"] }}
+                    pagination={{ position: ["bottomCenter"], showSizeChanger: true, showQuickJumper: true, defaultPageSize: 10, pageSizeOptions: [10, 20, 50] }}
                     bordered
                     sticky={true}
                     size="middle"
