@@ -1,6 +1,22 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Table, Button, Row, Col, Spin, Input, Space } from "antd";
-import { SearchOutlined } from "@ant-design/icons";
+import {
+    Table,
+    Button,
+    Row,
+    Col,
+    Spin,
+    Input,
+    Space,
+    Popover,
+    Tooltip,
+} from "antd";
+import {
+    SearchOutlined,
+    EyeOutlined,
+    EyeInvisibleOutlined,
+    PushpinOutlined,
+    PushpinFilled,
+} from "@ant-design/icons";
 import Highlighter from "react-highlight-words";
 
 const DashboardTable = () => {
@@ -10,6 +26,7 @@ const DashboardTable = () => {
     const [equityTrades, setEquityTrades] = useState([]);
     const [searchText, setSearchText] = useState("");
     const [searchedColumn, setSearchedColumn] = useState("");
+    const [columnSettings, setColumnSettings] = useState({});
     const searchInput = useRef(null);
 
     useEffect(() => {
@@ -20,7 +37,10 @@ const DashboardTable = () => {
                     fetch("http://localhost:3001/fxTrades"),
                     fetch("http://localhost:3001/equityTrades"),
                 ]);
-                const [fxData, eqData] = await Promise.all([fxRes.json(), eqRes.json()]);
+                const [fxData, eqData] = await Promise.all([
+                    fxRes.json(),
+                    eqRes.json(),
+                ]);
                 setFxTrades(fxData);
                 setEquityTrades(eqData);
             } catch (err) {
@@ -41,7 +61,9 @@ const DashboardTable = () => {
                     ref={searchInput}
                     placeholder={`Search ${dataIndex}`}
                     value={selectedKeys[0]}
-                    onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
+                    onChange={(e) =>
+                        setSelectedKeys(e.target.value ? [e.target.value] : [])
+                    }
                     onPressEnter={() => handleSearch(selectedKeys, confirm, dataIndex)}
                     style={{ marginBottom: 8, display: "block" }}
                 />
@@ -94,20 +116,49 @@ const DashboardTable = () => {
         setSearchText("");
     };
 
-    const searchableAndSortableKeys = ["tradeID", "counterparty", "productType", "traderName"];
+    const togglePin = (key) => {
+        setColumnSettings((prev) => ({
+            ...prev,
+            [key]: {
+                ...prev[key],
+                fixed: prev[key]?.fixed === "left" ? undefined : "left",
+            },
+        }));
+    };
+
+    const toggleVisibility = (key) => {
+        setColumnSettings((prev) => ({
+            ...prev,
+            [key]: {
+                ...prev[key],
+                visible: !prev[key]?.visible,
+            },
+        }));
+    };
 
     const enhanceColumns = (cols) =>
-        cols.map((col) => {
-            const isSearchable = searchableAndSortableKeys.includes(col.dataIndex);
-            return {
-                ...col,
-                ...(isSearchable ? getColumnSearchProps(col.dataIndex) : {}),
-                sorter: (a, b) => a[col.dataIndex]?.toString().localeCompare(b[col.dataIndex]?.toString()),
-            };
-        });
+        cols
+            .map((col) => {
+                const settings = columnSettings[col.key] || {};
+                const isVisible = settings.visible !== false;
+                const isSearchable = ["tradeID", "counterparty", "productType", "traderName"].includes(col.dataIndex);
 
-    const fxColumns = enhanceColumns([
-        { title: "Trade ID", dataIndex: "tradeID", key: "tradeID", fixed: "left" },
+                return isVisible
+                    ? {
+                        ...col,
+                        ...(isSearchable ? getColumnSearchProps(col.dataIndex) : {}),
+                        sorter: (a, b) =>
+                            a[col.dataIndex]?.toString().localeCompare(
+                                b[col.dataIndex]?.toString()
+                            ),
+                        fixed: settings.fixed,
+                    }
+                    : null;
+            })
+            .filter(Boolean);
+
+    const baseFxColumns = [
+        { title: "Trade ID", dataIndex: "tradeID", key: "tradeID" },
         { title: "Trade Date", dataIndex: "tradeDate", key: "tradeDate" },
         { title: "Value Date", dataIndex: "valueDate", key: "valueDate" },
         { title: "Counterparty", dataIndex: "counterparty", key: "counterparty" },
@@ -118,11 +169,11 @@ const DashboardTable = () => {
         { title: "Rate", dataIndex: "rate", key: "rate" },
         { title: "Execution Venue", dataIndex: "executionVenue", key: "executionVenue" },
         { title: "Trader Name", dataIndex: "traderName", key: "traderName" },
-        { title: "Currency Pair", dataIndex: "currencyPair", key: "currencyPair", fixed: "right" },
-    ]);
+        { title: "Currency Pair", dataIndex: "currencyPair", key: "currencyPair" },
+    ];
 
-    const equityColumns = enhanceColumns([
-        { title: "Trade ID", dataIndex: "tradeID", key: "tradeID", fixed: "left" },
+    const baseEquityColumns = [
+        { title: "Trade ID", dataIndex: "tradeID", key: "tradeID" },
         { title: "Trade Date", dataIndex: "tradeDate", key: "tradeDate" },
         { title: "Value Date", dataIndex: "valueDate", key: "valueDate" },
         { title: "Counterparty", dataIndex: "counterparty", key: "counterparty" },
@@ -132,21 +183,81 @@ const DashboardTable = () => {
         { title: "Ticker", dataIndex: "ticker", key: "ticker" },
         { title: "Price", dataIndex: "price", key: "price" },
         { title: "Execution Venue", dataIndex: "executionVenue", key: "executionVenue" },
-        { title: "Trader Name", dataIndex: "traderName", key: "traderName", fixed: "right" },
-    ]);
+        { title: "Trader Name", dataIndex: "traderName", key: "traderName" },
+    ];
 
-    const columns = activeTable === "fxTrades" ? fxColumns : equityColumns;
+    const columns = enhanceColumns(
+        activeTable === "fxTrades" ? baseFxColumns : baseEquityColumns
+    );
     const dataSource = activeTable === "fxTrades" ? fxTrades : equityTrades;
+    const currentBaseColumns = activeTable === "fxTrades" ? baseFxColumns : baseEquityColumns;
+
+    const renderColumnSettings = () => (
+        <div style={{ display: "flex", flexDirection: "column", minWidth: 200 }}>
+            {currentBaseColumns.map((col) => {
+                const key = col.key;
+                const visible = columnSettings[key]?.visible !== false;
+                const pinned = columnSettings[key]?.fixed === "left";
+
+                return (
+                    <div key={key} style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
+                        <Tooltip title={visible ? "Hide" : "Show"}>
+                            <Button
+                                type="text"
+                                icon={visible ? <EyeOutlined /> : <EyeInvisibleOutlined />}
+                                onClick={() => toggleVisibility(key)}
+                            />
+                        </Tooltip>
+                        <Tooltip title={pinned ? "Unpin" : "Pin to left"}>
+                            <Button
+                                type="text"
+                                icon={pinned ? <PushpinFilled /> : <PushpinOutlined />}
+                                onClick={() => togglePin(key)}
+                            />
+                        </Tooltip>
+                        <span style={{ marginLeft: 8 }}>{col.title}</span>
+                    </div>
+                );
+            })}
+        </div>
+    );
 
     return (
         <div style={{ padding: 16 }}>
-            <Row gutter={16} style={{ marginBottom: 16 }}>
+            <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
                 <Col>
-                    <Button type={activeTable === "fxTrades" ? "primary" : "default"} onClick={() => setActiveTable("fxTrades")}>FX Trades</Button>
+                    <Space>
+                        <Button
+                            type={activeTable === "fxTrades" ? "primary" : "default"}
+                            onClick={() => setActiveTable("fxTrades")}
+                        >
+                            FX Trades
+                        </Button>
+                        <Button
+                            type={activeTable === "equityTrades" ? "primary" : "default"}
+                            onClick={() => setActiveTable("equityTrades")}
+                        >
+                            Equity Trades
+                        </Button>
+                    </Space>
                 </Col>
-                <Col>
-                    <Button type={activeTable === "equityTrades" ? "primary" : "default"} onClick={() => setActiveTable("equityTrades")}>Equity Trades</Button>
-                </Col>
+                {activeTable && (
+                    <Col>
+                        <Popover
+                            content={renderColumnSettings()}
+                            title="Select Primary Columns"
+                            trigger="click"
+                            placement="bottomRight"
+                        >
+                            <Button
+                                type="primary"
+                                style={{ backgroundColor: "green", borderColor: "green" }}
+                            >
+                                Primary Column
+                            </Button>
+                        </Popover>
+                    </Col>
+                )}
             </Row>
 
             {loading ? (
@@ -157,13 +268,17 @@ const DashboardTable = () => {
                     columns={columns}
                     rowKey="tradeID"
                     scroll={{ x: 1500 }}
-                    pagination={{ pageSize: 10 }}
+                    pagination={{ pageSize: 10, position: ["bottomCenter"] }}
                     bordered
                     sticky={true}
                     size="middle"
                     style={{ backgroundColor: "#fff", borderRadius: "8px" }}
                     className="custom-table"
-                    title={() => <h2>{activeTable === "fxTrades" ? "FX Trades" : "Equity Trades"}</h2>}
+                    title={() => (
+                        <h2>
+                            {activeTable === "fxTrades" ? "FX Trades" : "Equity Trades"}
+                        </h2>
+                    )}
                     footer={() => <div>Total {dataSource.length} trades</div>}
                     locale={{ emptyText: "No data available" }}
                 />
