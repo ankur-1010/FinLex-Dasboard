@@ -177,19 +177,21 @@ const EquityTradesTable = () => {
 
     return (
         <div>
-            <Popover
-                content={renderColumnSettings()}
-                title="Select Primary Columns"
-                trigger="click"
-                placement="bottomRight"
-            >
-                <Button
-                    type="primary"
-                    style={{ backgroundColor: "green", borderColor: "green", marginBottom: 16 }}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 5 }}>          
+                <Popover
+                    content={renderColumnSettings()}
+                    title="Select Primary Columns"
+                    trigger="click"
+                    placement="bottomRight"
                 >
+                    <Button
+                        type="primary"
+                        style={{ backgroundColor: "green", borderColor: "green" }}
+                    >
                     Primary Column
-                </Button>
-            </Popover>
+                    </Button>
+                </Popover>
+            </div>
             <Table
                 dataSource={equityTrades}
                 columns={columns}
