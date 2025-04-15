@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Table, Input, Button, Space, Tooltip, Popover } from "antd";
+import { Table, Input, Button, Tooltip, Popover } from "antd";
 import { SearchOutlined, EyeOutlined, EyeInvisibleOutlined, PushpinOutlined, PushpinFilled } from "@ant-design/icons";
 import Highlighter from "react-highlight-words";
 
@@ -9,6 +9,7 @@ const FxTradesTable = () => {
     const [searchedColumn, setSearchedColumn] = useState("");
     const [columnSettings, setColumnSettings] = useState({});
     const [loading, setLoading] = useState(false);
+    const [filteredData, setFilteredData] = useState([]); // Add a state for filtered data
     const searchInput = useRef(null);
 
     useEffect(() => {
@@ -28,35 +29,24 @@ const FxTradesTable = () => {
         fetchFxTrades();
     }, []);
 
+    useEffect(() => {
+        setFilteredData(fxTrades); // Initialize filtered data with all trades
+    }, [fxTrades]);
+
     const getColumnSearchProps = (dataIndex) => ({
-        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => (
+        filterDropdown: ({ setSelectedKeys, selectedKeys }) => (
             <div style={{ padding: 8 }}>
                 <Input
                     ref={searchInput}
                     placeholder={`Search ${dataIndex}`}
                     value={selectedKeys[0]}
-                    onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
-                    onPressEnter={() => handleSearch(selectedKeys, confirm, dataIndex)}
+                    onChange={(e) => {
+                        const value = e.target.value;
+                        setSelectedKeys(value ? [value] : []);
+                        handleSearch(value, dataIndex); // Trigger search dynamically
+                    }}
                     style={{ marginBottom: 8, display: "block" }}
                 />
-                <Space>
-                    <Button
-                        type="primary"
-                        onClick={() => handleSearch(selectedKeys, confirm, dataIndex)}
-                        icon={<SearchOutlined />}
-                        size="small"
-                        style={{ width: 90 }}
-                    >
-                        Search
-                    </Button>
-                    <Button
-                        onClick={() => handleReset(clearFilters)}
-                        size="small"
-                        style={{ width: 90 }}
-                    >
-                        Reset
-                    </Button>
-                </Space>
             </div>
         ),
         filterIcon: (filtered) => (
@@ -77,15 +67,18 @@ const FxTradesTable = () => {
             ),
     });
 
-    const handleSearch = (selectedKeys, confirm, dataIndex) => {
-        confirm();
-        setSearchText(selectedKeys[0]);
+    const handleSearch = (value, dataIndex) => {
+        setSearchText(value);
         setSearchedColumn(dataIndex);
-    };
 
-    const handleReset = (clearFilters) => {
-        clearFilters();
-        setSearchText("");
+        if (value) {
+            const filtered = fxTrades.filter((record) =>
+                record[dataIndex]?.toString().toLowerCase().includes(value.toLowerCase())
+            );
+            setFilteredData(filtered); // Update the filtered data
+        } else {
+            setFilteredData(fxTrades); // Reset to all data if search is cleared
+        }
     };
 
     const togglePin = (key) => {
@@ -113,7 +106,7 @@ const FxTradesTable = () => {
             .map((col) => {
                 const settings = columnSettings[col.key] || {};
                 const isVisible = settings.visible !== false;
-                const isSearchable = ["tradeID", "counterparty", "productType", "traderName"].includes(col.dataIndex);
+                const isSearchable = ["tradeID","tradeDate","valueDate", "counterparty", "productType","buySell","notional","currency","rate","executionVenue", "traderName","currencyPair"].includes(col.dataIndex);
 
                 return isVisible
                     ? {
@@ -189,25 +182,30 @@ const FxTradesTable = () => {
                         type="primary"
                         style={{ backgroundColor: "green", borderColor: "green" }}
                     >
-                    Primary Column
+                        Primary Column
                     </Button>
                 </Popover>
             </div>
-            
             <Table
-                dataSource={fxTrades}
+                dataSource={filteredData} // Use filtered data here
                 columns={columns}
                 rowKey="tradeID"
                 loading={loading}
                 scroll={{ x: 1500 }}
-                pagination={{ position: ["bottomCenter"], showSizeChanger: true, showQuickJumper: true, defaultPageSize: 10, pageSizeOptions: [10, 20, 50] }}
+                pagination={{
+                    position: ["bottomCenter"],
+                    showSizeChanger: true,
+                    showQuickJumper: true,
+                    defaultPageSize: 10,
+                    pageSizeOptions: [10, 20, 50],
+                }}
                 bordered
                 sticky={true}
                 size="middle"
                 style={{ backgroundColor: "#fff", borderRadius: "8px" }}
                 className="custom-table"
                 title={() => <h2>FX Trades</h2>}
-                footer={() => <div>Total {fxTrades.length} trades</div>}
+                footer={() => <div>Total {filteredData.length} trades</div>} // Update footer to reflect filtered data
                 locale={{ emptyText: "No data available" }}
             />
         </div>

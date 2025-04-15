@@ -9,6 +9,7 @@ const EquityTradesTable = () => {
     const [searchedColumn, setSearchedColumn] = useState("");
     const [columnSettings, setColumnSettings] = useState({});
     const [loading, setLoading] = useState(false);
+    const [filteredData, setFilteredData] = useState([]); // Add a state for filtered data
     const searchInput = useRef(null);
 
     useEffect(() => {
@@ -28,35 +29,24 @@ const EquityTradesTable = () => {
         fetchEquityTrades();
     }, []);
 
+    useEffect(() => {
+        setFilteredData(equityTrades); // Initialize filtered data with all trades
+    }, [equityTrades]);
+
     const getColumnSearchProps = (dataIndex) => ({
-        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => (
+        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
             <div style={{ padding: 8 }}>
                 <Input
                     ref={searchInput}
                     placeholder={`Search ${dataIndex}`}
                     value={selectedKeys[0]}
-                    onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
-                    onPressEnter={() => handleSearch(selectedKeys, confirm, dataIndex)}
+                    onChange={(e) => {
+                        const value = e.target.value;
+                        setSelectedKeys(value ? [value] : []);
+                        handleSearch(value, dataIndex); // Trigger search dynamically
+                    }}
                     style={{ marginBottom: 8, display: "block" }}
                 />
-                <Space>
-                    <Button
-                        type="primary"
-                        onClick={() => handleSearch(selectedKeys, confirm, dataIndex)}
-                        icon={<SearchOutlined />}
-                        size="small"
-                        style={{ width: 90 }}
-                    >
-                        Search
-                    </Button>
-                    <Button
-                        onClick={() => handleReset(clearFilters)}
-                        size="small"
-                        style={{ width: 90 }}
-                    >
-                        Reset
-                    </Button>
-                </Space>
             </div>
         ),
         filterIcon: (filtered) => (
@@ -77,10 +67,18 @@ const EquityTradesTable = () => {
             ),
     });
 
-    const handleSearch = (selectedKeys, confirm, dataIndex) => {
-        confirm();
-        setSearchText(selectedKeys[0]);
+    const handleSearch = (value, dataIndex) => {
+        setSearchText(value);
         setSearchedColumn(dataIndex);
+
+        if (value) {
+            const filtered = equityTrades.filter((record) =>
+                record[dataIndex]?.toString().toLowerCase().includes(value.toLowerCase())
+            );
+            setFilteredData(filtered); // Update the filtered data
+        } else {
+            setFilteredData(equityTrades); // Reset to all data if search is cleared
+        }
     };
 
     const handleReset = (clearFilters) => {
@@ -113,7 +111,7 @@ const EquityTradesTable = () => {
             .map((col) => {
                 const settings = columnSettings[col.key] || {};
                 const isVisible = settings.visible !== false;
-                const isSearchable = ["tradeID", "counterparty", "productType", "traderName"].includes(col.dataIndex);
+                const isSearchable = ["tradeID", "tradeDate", "valueDate", "counterparty", "productType", "buySell", "quantity", "ticker", "price", "executionVenue", "traderName"].includes(col.dataIndex);
 
                 return isVisible
                     ? {
@@ -177,7 +175,7 @@ const EquityTradesTable = () => {
 
     return (
         <div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 5 }}>          
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 5 }}>
                 <Popover
                     content={renderColumnSettings()}
                     title="Select Primary Columns"
@@ -188,16 +186,16 @@ const EquityTradesTable = () => {
                         type="primary"
                         style={{ backgroundColor: "green", borderColor: "green" }}
                     >
-                    Primary Column
+                        Primary Column
                     </Button>
                 </Popover>
             </div>
             <Table
-                dataSource={equityTrades}
+                dataSource={filteredData}
                 columns={columns}
                 rowKey="tradeID"
                 loading={loading}
-                scroll={{ x: 1500 }}
+                scroll={{ x: 1550 }}
                 pagination={{ position: ["bottomCenter"], showSizeChanger: true, showQuickJumper: true, defaultPageSize: 10, pageSizeOptions: [10, 20, 50] }}
                 bordered
                 sticky={true}
@@ -205,7 +203,7 @@ const EquityTradesTable = () => {
                 style={{ backgroundColor: "#fff", borderRadius: "8px" }}
                 className="custom-table"
                 title={() => <h2>Equity Trades</h2>}
-                footer={() => <div>Total {equityTrades.length} trades</div>}
+                footer={() => <div>Total {filteredData.length} trades</div>}
                 locale={{ emptyText: "No data available" }}
             />
         </div>
