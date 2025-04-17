@@ -5,6 +5,7 @@ import EquityTradesTable from "./EquityTradesTable";
 
 const DashboardTable = () => {
     const [activeTable, setActiveTable] = useState(null);
+    console.log("Active Table:", activeTable); // Log the active table state
 
     return (
         <div style={{ padding: 16 }}>
