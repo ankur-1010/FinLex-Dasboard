@@ -13,8 +13,6 @@
   ```bash
     npm run dev
 
-4. Start the local backend server:
-  ```bash
-  json-server --watch db.json --port 3001
+
 
   

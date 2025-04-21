@@ -125,14 +125,14 @@ const EquityTradesTable = () => {
 
                 return isVisible
                     ? {
-                          ...col,
-                          ...(isSearchable ? getColumnSearchProps(col.dataIndex) : {}),
-                          sorter: (a, b) =>
-                              a[col.dataIndex]?.toString().localeCompare(
-                                  b[col.dataIndex]?.toString()
-                              ),
-                          fixed: settings.fixed,
-                      }
+                        ...col,
+                        ...(isSearchable ? getColumnSearchProps(col.dataIndex) : {}),
+                        sorter: (a, b) =>
+                            a[col.dataIndex]?.toString().localeCompare(
+                                b[col.dataIndex]?.toString()
+                            ),
+                        fixed: settings.fixed,
+                    }
                     : null;
             })
             .filter(Boolean);

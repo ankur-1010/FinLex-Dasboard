@@ -9,29 +9,41 @@ const FxTradesTable = () => {
     const [searchedColumn, setSearchedColumn] = useState("");
     const [columnSettings, setColumnSettings] = useState({});
     const [loading, setLoading] = useState(false);
-    const [filteredData, setFilteredData] = useState([]); // Add a state for filtered data
+    const [pagination, setPagination] = useState({
+        current: 1,
+        pageSize: 10,
+        total: 0,
+    });
     const searchInput = useRef(null);
 
-    useEffect(() => {
-        const fetchFxTrades = async () => {
-            setLoading(true);
-            try {
-                const response = await fetch("http://localhost:3001/fxTrades");
-                const data = await response.json();
-                setFxTrades(data);
-            } catch (error) {
-                console.error("Error fetching FX trades:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
+    const fetchFxTrades = async (page = 1, pageSize = 10) => {
+        setLoading(true);
+        try {
+            const response = await fetch(
+                `http://localhost:3000/api/fx-trades?limit=${pageSize}&page=${page}`
+            );
+            const data = await response.json();
+            setFxTrades(data.data || []); // Assuming the API returns `data` array
+            setPagination((prev) => ({
+                ...prev,
+                total: data.total || 0, // Assuming the API returns `total` count
+                current: page,
+                pageSize,
+            }));
+        } catch (error) {
+            console.error("Error fetching FX trades:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-        fetchFxTrades();
+    useEffect(() => {
+        fetchFxTrades(pagination.current, pagination.pageSize);
     }, []);
 
-    useEffect(() => {
-        setFilteredData(fxTrades); // Initialize filtered data with all trades
-    }, [fxTrades]);
+    const handleTableChange = (pagination) => {
+        fetchFxTrades(pagination.current, pagination.pageSize);
+    };
 
     const getColumnSearchProps = (dataIndex) => ({
         filterDropdown: ({ setSelectedKeys, selectedKeys }) => (
@@ -70,15 +82,6 @@ const FxTradesTable = () => {
     const handleSearch = (value, dataIndex) => {
         setSearchText(value);
         setSearchedColumn(dataIndex);
-
-        if (value) {
-            const filtered = fxTrades.filter((record) =>
-                record[dataIndex]?.toString().toLowerCase().includes(value.toLowerCase())
-            );
-            setFilteredData(filtered); // Update the filtered data
-        } else {
-            setFilteredData(fxTrades); // Reset to all data if search is cleared
-        }
     };
 
     const togglePin = (key) => {
@@ -106,7 +109,20 @@ const FxTradesTable = () => {
             .map((col) => {
                 const settings = columnSettings[col.key] || {};
                 const isVisible = settings.visible !== false;
-                const isSearchable = ["tradeID","tradeDate","valueDate", "counterparty", "productType","buySell","notional","currency","rate","executionVenue", "traderName","currencyPair"].includes(col.dataIndex);
+                const isSearchable = [
+                    "trade_id",
+                    "trade_date",
+                    "value_date",
+                    "counterparty",
+                    "product_type",
+                    "buy_sell",
+                    "notional",
+                    "currency",
+                    "rate",
+                    "execution_venue",
+                    "trader_name",
+                    "currency_pair",
+                ].includes(col.dataIndex);
 
                 return isVisible
                     ? {
@@ -123,18 +139,18 @@ const FxTradesTable = () => {
             .filter(Boolean);
 
     const baseFxColumns = [
-        { title: "Trade ID", dataIndex: "tradeID", key: "tradeID" },
-        { title: "Trade Date", dataIndex: "tradeDate", key: "tradeDate" },
-        { title: "Value Date", dataIndex: "valueDate", key: "valueDate" },
+        { title: "Trade ID", dataIndex: "trade_id", key: "trade_id" },
+        { title: "Trade Date", dataIndex: "trade_date", key: "trade_date" },
+        { title: "Value Date", dataIndex: "value_date", key: "value_date" },
         { title: "Counterparty", dataIndex: "counterparty", key: "counterparty" },
-        { title: "Product Type", dataIndex: "productType", key: "productType" },
-        { title: "Buy/Sell", dataIndex: "buySell", key: "buySell" },
+        { title: "Product Type", dataIndex: "product_type", key: "product_type" },
+        { title: "Buy/Sell", dataIndex: "buy_sell", key: "buy_sell" },
         { title: "Notional", dataIndex: "notional", key: "notional" },
         { title: "Currency", dataIndex: "currency", key: "currency" },
         { title: "Rate", dataIndex: "rate", key: "rate" },
-        { title: "Execution Venue", dataIndex: "executionVenue", key: "executionVenue" },
-        { title: "Trader Name", dataIndex: "traderName", key: "traderName" },
-        { title: "Currency Pair", dataIndex: "currencyPair", key: "currencyPair" },
+        { title: "Execution Venue", dataIndex: "execution_venue", key: "execution_venue" },
+        { title: "Trader Name", dataIndex: "trader_name", key: "trader_name" },
+        { title: "Currency Pair", dataIndex: "currency_pair", key: "currency_pair" },
     ];
 
     const columns = enhanceColumns(baseFxColumns);
@@ -171,7 +187,7 @@ const FxTradesTable = () => {
 
     return (
         <div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 5 }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 5 }}>
                 <Popover
                     content={renderColumnSettings()}
                     title="Select Primary Columns"
@@ -187,25 +203,27 @@ const FxTradesTable = () => {
                 </Popover>
             </div>
             <Table
-                dataSource={filteredData} // Use filtered data here
+                dataSource={fxTrades}
                 columns={columns}
-                rowKey="tradeID"
+                rowKey="trade_id"
                 loading={loading}
-                scroll={{ x: 1500 }}
+                scroll={{ x: 1700 }}
                 pagination={{
-                    position: ["bottomCenter"],
+                    current: pagination.current,
+                    pageSize: pagination.pageSize,
+                    total: pagination.total,
                     showSizeChanger: true,
                     showQuickJumper: true,
-                    defaultPageSize: 10,
                     pageSizeOptions: [10, 20, 50],
                 }}
+                onChange={handleTableChange}
                 bordered
                 sticky={true}
                 size="middle"
                 style={{ backgroundColor: "#fff", borderRadius: "8px" }}
                 className="custom-table"
                 title={() => <h2>FX Trades</h2>}
-                footer={() => <div>Total {filteredData.length} trades</div>} // Update footer to reflect filtered data
+                footer={() => <div>Total {pagination.total} trades</div>}
                 locale={{ emptyText: "No data available" }}
             />
         </div>
