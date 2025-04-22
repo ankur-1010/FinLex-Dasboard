@@ -5,8 +5,7 @@ import EquityTradesTable from "./EquityTradesTable";
 
 const DashboardTable = () => {
     const [activeTable, setActiveTable] = useState(null);
-    console.log("Active Table:", activeTable); // Log the active table state
-
+    console.log("Active Table:", activeTable); 
     return (
         <div style={{ padding: 16 }}>
             <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>

@@ -7,6 +7,7 @@ const FxTradesTable = () => {
     const [fxTrades, setFxTrades] = useState([]);
     const [searchText, setSearchText] = useState("");
     const [searchedColumn, setSearchedColumn] = useState("");
+    const [globalSearchTerm, setGlobalSearchTerm] = useState(""); // State for global search term
     const [columnSettings, setColumnSettings] = useState({});
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({
@@ -16,13 +17,22 @@ const FxTradesTable = () => {
     });
     const searchInput = useRef(null);
 
-    const fetchFxTrades = async (page = 1, pageSize = 10) => {
+    const fetchFxTrades = async (page = 1, pageSize = 10, search = "") => {
         setLoading(true);
         try {
-            const response = await fetch(
-                `http://localhost:3000/api/fx-trades?limit=${pageSize}&page=${page}`
-            );
+            const encodedSearchTerm = encodeURIComponent(search);
+            console.log("Fetching FX trades with search term******:  ", encodedSearchTerm);
+            const url = search
+                ? `http://localhost:3000/api/search-fx-trades?search=${encodedSearchTerm}&limit=${pageSize}&page=${page}`
+                : `http://localhost:3000/api/fx-trades?limit=${pageSize}&page=${page}`;
+            const response = await fetch(url);
+            console.log("Response from API:*** ", response);
+            if (!response.ok) {
+                throw new Error("Network response was not ok " + response.statusText);
+            }
             const data = await response.json();
+            console.log("Data from API:*** ", data);
+
             setFxTrades(data.data || []); // Assuming the API returns `data` array
             setPagination((prev) => ({
                 ...prev,
@@ -41,8 +51,13 @@ const FxTradesTable = () => {
         fetchFxTrades(pagination.current, pagination.pageSize);
     }, []);
 
+    const handleGlobalSearch = (value) => {
+        setGlobalSearchTerm(value);
+        fetchFxTrades(1, pagination.pageSize, value); 
+    };
+
     const handleTableChange = (pagination) => {
-        fetchFxTrades(pagination.current, pagination.pageSize);
+        fetchFxTrades(pagination.current, pagination.pageSize, globalSearchTerm);
     };
 
     const getColumnSearchProps = (dataIndex) => ({
@@ -55,7 +70,7 @@ const FxTradesTable = () => {
                     onChange={(e) => {
                         const value = e.target.value;
                         setSelectedKeys(value ? [value] : []);
-                        handleSearch(value, dataIndex); // Trigger search dynamically
+                        handleSearch(value, dataIndex); 
                     }}
                     style={{ marginBottom: 8, display: "block" }}
                 />
@@ -187,7 +202,14 @@ const FxTradesTable = () => {
 
     return (
         <div>
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 5 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+                <Input
+                    placeholder="Global Search"
+                    value={globalSearchTerm}
+                    onChange={(e) => handleGlobalSearch(e.target.value)}
+                    style={{ width: 300 }}
+                    allowClear
+                />
                 <Popover
                     content={renderColumnSettings()}
                     title="Select Primary Columns"

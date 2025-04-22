@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Table, Input, Button, Space, Tooltip, Popover } from "antd";
+import { Table, Input, Button, Tooltip, Popover } from "antd";
 import { SearchOutlined, EyeOutlined, EyeInvisibleOutlined, PushpinOutlined, PushpinFilled } from "@ant-design/icons";
 import Highlighter from "react-highlight-words";
 
@@ -7,6 +7,7 @@ const EquityTradesTable = () => {
     const [equityTrades, setEquityTrades] = useState([]);
     const [searchText, setSearchText] = useState("");
     const [searchedColumn, setSearchedColumn] = useState("");
+    const [globalSearchTerm, setGlobalSearchTerm] = useState(""); // State for global search term
     const [columnSettings, setColumnSettings] = useState({});
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({
@@ -16,12 +17,14 @@ const EquityTradesTable = () => {
     });
     const searchInput = useRef(null);
 
-    const fetchEquityTrades = async (page = 1, pageSize = 10) => {
+    const fetchEquityTrades = async (page = 1, pageSize = 10, search = "") => {
         setLoading(true);
         try {
-            const response = await fetch(
-                `http://localhost:3000/api/equity-trades?limit=${pageSize}&page=${page}`
-            );
+            const encodedSearchTerm = encodeURIComponent(search);
+            const url = search
+                ? `http://localhost:3000/api/search-equity-trades?search=${encodedSearchTerm}&limit=${pageSize}&page=${page}`
+                : `http://localhost:3000/api/equity-trades?limit=${pageSize}&page=${page}`;
+            const response = await fetch(url);
             const data = await response.json();
             setEquityTrades(data.data || []); // Assuming the API returns `data` array
             setPagination((prev) => ({
@@ -41,12 +44,17 @@ const EquityTradesTable = () => {
         fetchEquityTrades(pagination.current, pagination.pageSize);
     }, []);
 
+    const handleGlobalSearch = (value) => {
+        setGlobalSearchTerm(value);
+        fetchEquityTrades(1, pagination.pageSize, value); // Fetch data with the global search term
+    };
+
     const handleTableChange = (pagination) => {
-        fetchEquityTrades(pagination.current, pagination.pageSize);
+        fetchEquityTrades(pagination.current, pagination.pageSize, globalSearchTerm);
     };
 
     const getColumnSearchProps = (dataIndex) => ({
-        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+        filterDropdown: ({ setSelectedKeys, selectedKeys }) => (
             <div style={{ padding: 8 }}>
                 <Input
                     ref={searchInput}
@@ -125,14 +133,14 @@ const EquityTradesTable = () => {
 
                 return isVisible
                     ? {
-                        ...col,
-                        ...(isSearchable ? getColumnSearchProps(col.dataIndex) : {}),
-                        sorter: (a, b) =>
-                            a[col.dataIndex]?.toString().localeCompare(
-                                b[col.dataIndex]?.toString()
-                            ),
-                        fixed: settings.fixed,
-                    }
+                          ...col,
+                          ...(isSearchable ? getColumnSearchProps(col.dataIndex) : {}),
+                          sorter: (a, b) =>
+                              a[col.dataIndex]?.toString().localeCompare(
+                                  b[col.dataIndex]?.toString()
+                              ),
+                          fixed: settings.fixed,
+                      }
                     : null;
             })
             .filter(Boolean);
@@ -185,7 +193,14 @@ const EquityTradesTable = () => {
 
     return (
         <div>
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 5 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+                <Input
+                    placeholder="Global Search"
+                    value={globalSearchTerm}
+                    onChange={(e) => handleGlobalSearch(e.target.value)}
+                    style={{ width: 300 }}
+                    allowClear
+                />
                 <Popover
                     content={renderColumnSettings()}
                     title="Select Primary Columns"
