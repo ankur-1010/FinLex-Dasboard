@@ -1,6 +1,6 @@
 import React from "react";
 import { Layout } from "antd";
-import DashboardTable from "../components/Table";
+import DashboardTable from "../components/DashboardTable";
 
 const { Content } = Layout;
 
@@ -14,4 +14,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-// 
