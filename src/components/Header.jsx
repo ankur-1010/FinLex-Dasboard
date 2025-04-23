@@ -34,7 +34,7 @@ const AppHeader = () => {
                         My Apps <DownOutlined />
                     </Button>
                 </Dropdown>
-                <Button onClick={() => handleNavigation("/stpadmin")} style={{ marginLeft: "30px" }}>STPADMIN</Button>
+                <Button onClick={() => handleNavigation("/stpadmin")} style={{ marginLeft: "30px" }}>DATA WRAPPER</Button>
                 <Button onClick={() => handleNavigation("/stp")} style={{ marginLeft: "15px" }}>STP</Button>
             </div>
             <Dropdown overlay={userMenu} placement="bottomRight">

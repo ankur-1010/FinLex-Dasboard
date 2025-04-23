@@ -8,6 +8,7 @@ const FxTradesTable = () => {
     const [searchText, setSearchText] = useState("");
     const [searchedColumn, setSearchedColumn] = useState("");
     const [globalSearchTerm, setGlobalSearchTerm] = useState(""); // State for global search term
+    const [searchInputValue, setSearchInputValue] = useState(""); // State for input value
     const [columnSettings, setColumnSettings] = useState({});
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({
@@ -21,17 +22,16 @@ const FxTradesTable = () => {
         setLoading(true);
         try {
             const encodedSearchTerm = encodeURIComponent(search);
-            console.log("Fetching FX trades with search term******:  ", encodedSearchTerm);
             const url = search
                 ? `http://localhost:3000/api/search-fx-trades?search=${encodedSearchTerm}&limit=${pageSize}&page=${page}`
                 : `http://localhost:3000/api/fx-trades?limit=${pageSize}&page=${page}`;
             const response = await fetch(url);
-            console.log("Response from API:*** ", response);
+            // console.log("Response from API:*** ", response);
             if (!response.ok) {
                 throw new Error("Network response was not ok " + response.statusText);
             }
             const data = await response.json();
-            console.log("Data from API:*** ", data);
+            // console.log("Data from API:*** ", data);
 
             setFxTrades(data.data || []); // Assuming the API returns `data` array
             setPagination((prev) => ({
@@ -51,9 +51,9 @@ const FxTradesTable = () => {
         fetchFxTrades(pagination.current, pagination.pageSize);
     }, []);
 
-    const handleGlobalSearch = (value) => {
-        setGlobalSearchTerm(value);
-        fetchFxTrades(1, pagination.pageSize, value); 
+    const handleGlobalSearch = () => {
+        setGlobalSearchTerm(searchInputValue); // Use the input value for the search
+        fetchFxTrades(1, pagination.pageSize, searchInputValue);
     };
 
     const handleTableChange = (pagination) => {
@@ -203,13 +203,21 @@ const FxTradesTable = () => {
     return (
         <div>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-                <Input
-                    placeholder="Global Search"
-                    value={globalSearchTerm}
-                    onChange={(e) => handleGlobalSearch(e.target.value)}
-                    style={{ width: 300 }}
-                    allowClear
-                />
+                <div style={{ display: "flex", gap: "8px" }}>
+                    <Input
+                        placeholder="Global Search"
+                        value={searchInputValue}
+                        onChange={(e) => setSearchInputValue(e.target.value)} // Update input value
+                        style={{ width: 300 }}
+                        allowClear
+                    />
+                    <Button
+                        type="primary"
+                        onClick={handleGlobalSearch} // Trigger search on button click
+                    >
+                        Search
+                    </Button>
+                </div>
                 <Popover
                     content={renderColumnSettings()}
                     title="Select Primary Columns"

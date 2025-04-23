@@ -8,6 +8,7 @@ const EquityTradesTable = () => {
     const [searchText, setSearchText] = useState("");
     const [searchedColumn, setSearchedColumn] = useState("");
     const [globalSearchTerm, setGlobalSearchTerm] = useState(""); // State for global search term
+    const [searchInputValue, setSearchInputValue] = useState(""); // State for input value
     const [columnSettings, setColumnSettings] = useState({});
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({
@@ -25,7 +26,11 @@ const EquityTradesTable = () => {
                 ? `http://localhost:3000/api/search-equity-trades?search=${encodedSearchTerm}&limit=${pageSize}&page=${page}`
                 : `http://localhost:3000/api/equity-trades?limit=${pageSize}&page=${page}`;
             const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error("Network response was not ok " + response.statusText);
+            }
             const data = await response.json();
+
             setEquityTrades(data.data || []); // Assuming the API returns `data` array
             setPagination((prev) => ({
                 ...prev,
@@ -34,7 +39,7 @@ const EquityTradesTable = () => {
                 pageSize,
             }));
         } catch (error) {
-            console.error("Error fetching equity trades:", error);
+            console.error("Error fetching Equity trades:", error);
         } finally {
             setLoading(false);
         }
@@ -44,9 +49,9 @@ const EquityTradesTable = () => {
         fetchEquityTrades(pagination.current, pagination.pageSize);
     }, []);
 
-    const handleGlobalSearch = (value) => {
-        setGlobalSearchTerm(value);
-        fetchEquityTrades(1, pagination.pageSize, value); // Fetch data with the global search term
+    const handleGlobalSearch = () => {
+        setGlobalSearchTerm(searchInputValue); // Use the input value for the search
+        fetchEquityTrades(1, pagination.pageSize, searchInputValue);
     };
 
     const handleTableChange = (pagination) => {
@@ -63,7 +68,7 @@ const EquityTradesTable = () => {
                     onChange={(e) => {
                         const value = e.target.value;
                         setSelectedKeys(value ? [value] : []);
-                        handleSearch(value, dataIndex); // Trigger search dynamically
+                        handleSearch(value, dataIndex);
                     }}
                     style={{ marginBottom: 8, display: "block" }}
                 />
@@ -194,13 +199,21 @@ const EquityTradesTable = () => {
     return (
         <div>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-                <Input
-                    placeholder="Global Search"
-                    value={globalSearchTerm}
-                    onChange={(e) => handleGlobalSearch(e.target.value)}
-                    style={{ width: 300 }}
-                    allowClear
-                />
+                <div style={{ display: "flex", gap: "8px" }}>
+                    <Input
+                        placeholder="Global Search"
+                        value={searchInputValue}
+                        onChange={(e) => setSearchInputValue(e.target.value)} // Update input value
+                        style={{ width: 300 }}
+                        allowClear
+                    />
+                    <Button
+                        type="primary"
+                        onClick={handleGlobalSearch} // Trigger search on button click
+                    >
+                        Search
+                    </Button>
+                </div>
                 <Popover
                     content={renderColumnSettings()}
                     title="Select Primary Columns"
@@ -220,7 +233,7 @@ const EquityTradesTable = () => {
                 columns={columns}
                 rowKey="trade_id"
                 loading={loading}
-                scroll={{ x: 1550 }}
+                scroll={{ x: 1700 }}
                 pagination={{
                     current: pagination.current,
                     pageSize: pagination.pageSize,
