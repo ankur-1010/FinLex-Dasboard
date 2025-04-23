@@ -10,6 +10,8 @@ const AppRoutes = () => {
     return (
         <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/fx-trades" element={<Dashboard />} /> 
+            <Route path="/equity-trades" element={<Dashboard />} /> 
             <Route path="/messages" element={<Messages />} />
             <Route path="/endpoints" element={<Endpoints />} />
             <Route path="/stp" element={<STP />} />
