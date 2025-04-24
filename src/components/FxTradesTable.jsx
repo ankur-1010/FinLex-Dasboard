@@ -53,7 +53,20 @@ const FxTradesTable = () => {
 
     const handleGlobalSearch = () => {
         setGlobalSearchTerm(searchInputValue); // Use the input value for the search
+        console.log("Global search triggered with value:", searchInputValue);
         fetchFxTrades(1, pagination.pageSize, searchInputValue);
+    };
+    const handleClearSearch = () => {
+        setSearchInputValue(""); // Clear the input field
+        setGlobalSearchTerm(""); // Reset the global search term
+        fetchFxTrades(1, pagination.pageSize, ""); // Fetch all data without filters
+    };
+
+    const handleKeyPress = (e) => {
+        if (e.key === "Enter") {
+            console.log("Enter key pressed, triggering search");
+            handleGlobalSearch(); // Trigger search on "Enter" key press
+        }
     };
 
     const handleTableChange = (pagination) => {
@@ -208,6 +221,8 @@ const FxTradesTable = () => {
                         placeholder="Global Search"
                         value={searchInputValue}
                         onChange={(e) => setSearchInputValue(e.target.value)} // Update input value
+                        onKeyDown= {handleKeyPress} // Trigger search on "Enter" key press
+                        onClear={handleClearSearch} // Clear search and re-render table
                         style={{ width: 300 }}
                         allowClear
                     />

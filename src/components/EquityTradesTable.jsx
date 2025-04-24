@@ -34,7 +34,7 @@ const EquityTradesTable = () => {
             setEquityTrades(data.data || []); // Assuming the API returns `data` array
             setPagination((prev) => ({
                 ...prev,
-                total: data.total || 0, // Assuming the API returns `total` count
+                total: data.total || 0,
                 current: page,
                 pageSize,
             }));
@@ -50,8 +50,22 @@ const EquityTradesTable = () => {
     }, []);
 
     const handleGlobalSearch = () => {
+        console.log("Global search triggered with value:", searchInputValue);
         setGlobalSearchTerm(searchInputValue); // Use the input value for the search
         fetchEquityTrades(1, pagination.pageSize, searchInputValue);
+    };
+
+    const handleClearSearch = () => {
+        setSearchInputValue(""); // Clear the input field
+        setGlobalSearchTerm(""); // Reset the global search term
+        fetchEquityTrades(1, pagination.pageSize, ""); // Fetch all data without filters
+    };
+
+    const handleKeyPress = (e) => {
+        if (e.key === "Enter") {
+            console.log("Enter key pressed, triggering search");
+            handleGlobalSearch(); // Trigger search on "Enter" key press
+        }
     };
 
     const handleTableChange = (pagination) => {
@@ -138,14 +152,14 @@ const EquityTradesTable = () => {
 
                 return isVisible
                     ? {
-                          ...col,
-                          ...(isSearchable ? getColumnSearchProps(col.dataIndex) : {}),
-                          sorter: (a, b) =>
-                              a[col.dataIndex]?.toString().localeCompare(
-                                  b[col.dataIndex]?.toString()
-                              ),
-                          fixed: settings.fixed,
-                      }
+                        ...col,
+                        ...(isSearchable ? getColumnSearchProps(col.dataIndex) : {}),
+                        sorter: (a, b) =>
+                            a[col.dataIndex]?.toString().localeCompare(
+                                b[col.dataIndex]?.toString()
+                            ),
+                        fixed: settings.fixed,
+                    }
                     : null;
             })
             .filter(Boolean);
@@ -204,6 +218,8 @@ const EquityTradesTable = () => {
                         placeholder="Global Search"
                         value={searchInputValue}
                         onChange={(e) => setSearchInputValue(e.target.value)} // Update input value
+                        onKeyDown= {handleKeyPress} // Trigger search on "Enter" key press
+                        onClear={handleClearSearch} // Clear search and re-render table
                         style={{ width: 300 }}
                         allowClear
                     />
