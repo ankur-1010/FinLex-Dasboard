@@ -1,14 +1,13 @@
 import React, { useState } from "react";
 import { Button, Row, Col, Space } from "antd";
-import { useNavigate, useLocation } from "react-router-dom"; // Import hooks from React Router
+import { useNavigate, useLocation } from "react-router-dom";
 import FxTradesTable from "./FxTradesTable";
 import EquityTradesTable from "./EquityTradesTable";
 
 const DashboardTable = () => {
-    const navigate = useNavigate(); // Hook to navigate programmatically
-    const location = useLocation(); // Hook to get the current location
+    const navigate = useNavigate();
+    const location = useLocation();
     const [activeTable, setActiveTable] = useState(() => {
-        // Set the initial active table based on the URL
         if (location.pathname.includes("fx-trades")) return "fxTrades";
         if (location.pathname.includes("equity-trades")) return "equityTrades";
         return null;
@@ -17,24 +16,36 @@ const DashboardTable = () => {
     const handleTableChange = (table) => {
         setActiveTable(table);
         if (table === "fxTrades") {
-            navigate("/fx-trades"); // Update the URL for FX Trades
+            navigate("/fx-trades");
         } else if (table === "equityTrades") {
-            navigate("/equity-trades"); // Update the URL for Equity Trades
+            navigate("/equity-trades");
         }
     };
 
     return (
         <div style={{ padding: 16 }}>
-            <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-                <Col>
-                    <Space>
+            <Row
+                justify="space-between"
+                align="middle"
+                gutter={[16, 16]}
+                style={{ marginBottom: 16 }}
+            >
+                <Col xs={24} sm={24} md={12}>
+                    <Space
+                        direction="horizontal"
+                        size="middle"
+                        wrap
+                        style={{ width: "100%", justifyContent: "start" }}
+                    >
                         <Button
+                            block={window.innerWidth < 576}
                             type={activeTable === "fxTrades" ? "primary" : "default"}
                             onClick={() => handleTableChange("fxTrades")}
                         >
                             FX Trades
                         </Button>
                         <Button
+                            block={window.innerWidth < 576}
                             type={activeTable === "equityTrades" ? "primary" : "default"}
                             onClick={() => handleTableChange("equityTrades")}
                         >
@@ -44,9 +55,13 @@ const DashboardTable = () => {
                 </Col>
             </Row>
 
-            {activeTable === "fxTrades" && <FxTradesTable />}
-            {activeTable === "equityTrades" && <EquityTradesTable />}
-            {!activeTable && <p>Select a table to view its data.</p>}
+            <Row>
+                <Col span={24}>
+                    {activeTable === "fxTrades" && <FxTradesTable />}
+                    {activeTable === "equityTrades" && <EquityTradesTable />}
+                    {!activeTable && <p>Select a table to view its data.</p>}
+                </Col>
+            </Row>
         </div>
     );
 };

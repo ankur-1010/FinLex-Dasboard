@@ -1,14 +1,20 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Table, Input, Button, Tooltip, Popover } from "antd";
-import { SearchOutlined, EyeOutlined, EyeInvisibleOutlined, PushpinOutlined, PushpinFilled } from "@ant-design/icons";
+import {
+    SearchOutlined,
+    EyeOutlined,
+    EyeInvisibleOutlined,
+    PushpinOutlined,
+    PushpinFilled,
+} from "@ant-design/icons";
 import Highlighter from "react-highlight-words";
 
 const FxTradesTable = () => {
     const [fxTrades, setFxTrades] = useState([]);
     const [searchText, setSearchText] = useState("");
     const [searchedColumn, setSearchedColumn] = useState("");
-    const [globalSearchTerm, setGlobalSearchTerm] = useState(""); // State for global search term
-    const [searchInputValue, setSearchInputValue] = useState(""); // State for input value
+    const [globalSearchTerm, setGlobalSearchTerm] = useState("");
+    const [searchInputValue, setSearchInputValue] = useState("");
     const [columnSettings, setColumnSettings] = useState({});
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({
@@ -18,6 +24,7 @@ const FxTradesTable = () => {
     });
     const searchInput = useRef(null);
 
+    // Fetch (with optional search)
     const fetchFxTrades = async (page = 1, pageSize = 10, search = "") => {
         setLoading(true);
         try {
@@ -26,22 +33,19 @@ const FxTradesTable = () => {
                 ? `http://localhost:3000/api/search-fx-trades?search=${encodedSearchTerm}&limit=${pageSize}&page=${page}`
                 : `http://localhost:3000/api/fx-trades?limit=${pageSize}&page=${page}`;
             const response = await fetch(url);
-            // console.log("Response from API:*** ", response);
             if (!response.ok) {
                 throw new Error("Network response was not ok " + response.statusText);
             }
             const data = await response.json();
-            // console.log("Data from API:*** ", data);
-
-            setFxTrades(data.data || []); // Assuming the API returns `data` array
+            setFxTrades(data.data || []);
             setPagination((prev) => ({
                 ...prev,
-                total: data.total || 0, // Assuming the API returns `total` count
+                total: data.total || 0,
                 current: page,
                 pageSize,
             }));
-        } catch (error) {
-            console.error("Error fetching FX trades:", error);
+        } catch (err) {
+            console.error("Error fetching FX trades:", err);
         } finally {
             setLoading(false);
         }
@@ -51,28 +55,30 @@ const FxTradesTable = () => {
         fetchFxTrades(pagination.current, pagination.pageSize);
     }, []);
 
+    // Global search handlers
     const handleGlobalSearch = () => {
-        setGlobalSearchTerm(searchInputValue); // Use the input value for the search
+        setGlobalSearchTerm(searchInputValue);
         console.log("Global search triggered with value:", searchInputValue);
         fetchFxTrades(1, pagination.pageSize, searchInputValue);
     };
     const handleClearSearch = () => {
-        setSearchInputValue(""); // Clear the input field
-        setGlobalSearchTerm(""); // Reset the global search term
-        fetchFxTrades(1, pagination.pageSize, ""); // Fetch all data without filters
+        setSearchInputValue("");
+        setGlobalSearchTerm("");
+        fetchFxTrades(1, pagination.pageSize, "");
     };
-
     const handleKeyPress = (e) => {
         if (e.key === "Enter") {
             console.log("Enter key pressed, triggering search");
-            handleGlobalSearch(); // Trigger search on "Enter" key press
+            handleGlobalSearch();
         }
     };
 
+    // Pagination / sort / filter
     const handleTableChange = (pagination) => {
         fetchFxTrades(pagination.current, pagination.pageSize, globalSearchTerm);
     };
 
+    // Column-level search props
     const getColumnSearchProps = (dataIndex) => ({
         filterDropdown: ({ setSelectedKeys, selectedKeys }) => (
             <div style={{ padding: 8 }}>
@@ -80,39 +86,40 @@ const FxTradesTable = () => {
                     ref={searchInput}
                     placeholder={`Search ${dataIndex}`}
                     value={selectedKeys[0]}
-                    onChange={(e) => {
-                        const value = e.target.value;
-                        setSelectedKeys(value ? [value] : []);
-                        handleSearch(value, dataIndex); 
+                    onChange={(e) =>
+                        setSelectedKeys(e.target.value ? [e.target.value] : [])
+                    }
+                    onPressEnter={() => {
+                        setSearchText(selectedKeys[0] || "");
+                        setSearchedColumn(dataIndex);
                     }}
                     style={{ marginBottom: 8, display: "block" }}
                 />
             </div>
         ),
         filterIcon: (filtered) => (
-            <SearchOutlined style={{ color: filtered ? "#a2250a" : undefined }} />
+            <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
         ),
         onFilter: (value, record) =>
-            record[dataIndex]?.toString().toLowerCase().includes(value.toLowerCase()),
+            record[dataIndex]
+                ?.toString()
+                .toLowerCase()
+                .includes(value.toLowerCase()),
         render: (text) =>
             searchedColumn === dataIndex ? (
                 <Highlighter
                     highlightStyle={{ backgroundColor: "#ffc069", padding: 0 }}
                     searchWords={[searchText]}
                     autoEscape
-                    textToHighlight={text?.toString() ?? ""}
+                    textToHighlight={text?.toString() || ""}
                 />
             ) : (
                 text
             ),
     });
 
-    const handleSearch = (value, dataIndex) => {
-        setSearchText(value);
-        setSearchedColumn(dataIndex);
-    };
-
-    const togglePin = (key) => {
+    // Pin/unpin & show/hide
+    const togglePin = (key) =>
         setColumnSettings((prev) => ({
             ...prev,
             [key]: {
@@ -120,24 +127,20 @@ const FxTradesTable = () => {
                 fixed: prev[key]?.fixed === "left" ? undefined : "left",
             },
         }));
-    };
-
-    const toggleVisibility = (key) => {
+    const toggleVisibility = (key) =>{ 
         setColumnSettings((prev) => ({
             ...prev,
-            [key]: {
-                ...prev[key],
-                visible: !prev[key]?.visible,
-            },
+            [key]: { ...prev[key], visible: !prev[key]?.visible,},
         }));
     };
 
+    // Apply settings + add search/sort
     const enhanceColumns = (cols) =>
         cols
             .map((col) => {
                 const settings = columnSettings[col.key] || {};
-                const isVisible = settings.visible !== false;
-                const isSearchable = [
+                if (settings.visible === false) return null;
+                const searchable = [
                     "trade_id",
                     "trade_date",
                     "value_date",
@@ -151,18 +154,13 @@ const FxTradesTable = () => {
                     "trader_name",
                     "currency_pair",
                 ].includes(col.dataIndex);
-
-                return isVisible
-                    ? {
-                        ...col,
-                        ...(isSearchable ? getColumnSearchProps(col.dataIndex) : {}),
-                        sorter: (a, b) =>
-                            a[col.dataIndex]?.toString().localeCompare(
-                                b[col.dataIndex]?.toString()
-                            ),
-                        fixed: settings.fixed,
-                    }
-                    : null;
+                return {
+                    ...col,
+                    ...(searchable ? getColumnSearchProps(col.dataIndex) : {}),
+                    sorter: (a, b) =>
+                        String(a[col.dataIndex]).localeCompare(String(b[col.dataIndex])),
+                    fixed: settings.fixed,
+                };
             })
             .filter(Boolean);
 
@@ -180,18 +178,20 @@ const FxTradesTable = () => {
         { title: "Trader Name", dataIndex: "trader_name", key: "trader_name" },
         { title: "Currency Pair", dataIndex: "currency_pair", key: "currency_pair" },
     ];
-
     const columns = enhanceColumns(baseFxColumns);
 
+    // Popover content
     const renderColumnSettings = () => (
-        <div style={{ display: "flex", flexDirection: "column", minWidth: 200 }}>
+        <div style={{ display: "flex", flexDirection: "column", minWidth: 220 }}>
             {baseFxColumns.map((col) => {
                 const key = col.key;
                 const visible = columnSettings[key]?.visible !== false;
                 const pinned = columnSettings[key]?.fixed === "left";
-
                 return (
-                    <div key={key} style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
+                    <div
+                        key={key}
+                        style={{ display: "flex", alignItems: "center", marginBottom: 8 }}
+                    >
                         <Tooltip title={visible ? "Hide" : "Show"}>
                             <Button
                                 type="text"
@@ -214,21 +214,31 @@ const FxTradesTable = () => {
     );
 
     return (
-        <div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-                <div style={{ display: "flex", gap: "8px" }}>
+        <div style={{ padding: "1rem" }}>
+            {/* Top controls */}
+            <div
+                style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    marginBottom: 16,
+                }}
+            >
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     <Input
                         placeholder="Global Search"
                         value={searchInputValue}
-                        onChange={(e) => setSearchInputValue(e.target.value)} // Update input value
-                        onKeyDown= {handleKeyPress} // Trigger search on "Enter" key press
-                        onClear={handleClearSearch} // Clear search and re-render table
-                        style={{ width: 300 }}
+                        onChange={(e) => setSearchInputValue(e.target.value)}
+                        onKeyDown={handleKeyPress}
+                        style={{ width: "60%", maxWidth: 300, minWidth: 50 }}
                         allowClear
+                        onClear={handleClearSearch}
                     />
                     <Button
                         type="primary"
-                        onClick={handleGlobalSearch} // Trigger search on button click
+                        onClick={handleGlobalSearch}
+                        style={{ minWidth: 100 }}
                     >
                         Search
                     </Button>
@@ -241,12 +251,14 @@ const FxTradesTable = () => {
                 >
                     <Button
                         type="primary"
-                        style={{ backgroundColor: "green", borderColor: "green" }}
+                        style={{ backgroundColor: "green", borderColor: "green", minWidth: 160 }}
                     >
                         Primary Column
                     </Button>
                 </Popover>
             </div>
+
+            {/* FX Trades table */}
             <Table
                 dataSource={fxTrades}
                 columns={columns}
@@ -265,10 +277,11 @@ const FxTradesTable = () => {
                 bordered
                 sticky={true}
                 size="middle"
-                style={{ backgroundColor: "#fff", borderRadius: "8px" }}
-                className="custom-table"
-                title={() => <h2>FX Trades</h2>}
-                footer={() => <div>Total {pagination.total} trades</div>}
+                style={{ backgroundColor: "#fff", borderRadius: 8 }}
+                title={() => <h2 style={{ fontSize: "1.25rem" }}>FX Trades</h2>}
+                footer={() => (
+                    <div style={{ fontWeight: 500 }}>Total {pagination.total} trades</div>
+                )}
                 locale={{ emptyText: "No data available" }}
             />
         </div>
