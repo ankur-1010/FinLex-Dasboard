@@ -154,12 +154,34 @@ const FxTradesTable = () => {
                     "trader_name",
                     "currency_pair",
                 ].includes(col.dataIndex);
+    
+                const columnSearchProps = searchable ? getColumnSearchProps(col.dataIndex) : {};
+    
                 return {
                     ...col,
-                    ...(searchable ? getColumnSearchProps(col.dataIndex) : {}),
+                    ...columnSearchProps,
                     sorter: (a, b) =>
                         String(a[col.dataIndex]).localeCompare(String(b[col.dataIndex])),
                     fixed: settings.fixed,
+                    render: (text) => {
+                        // Combine global search and column search highlighting
+                        const highlightWords = [];
+                        if (globalSearchTerm) highlightWords.push(globalSearchTerm);
+                        if (searchedColumn === col.dataIndex && searchText) {
+                            highlightWords.push(searchText);
+                        }
+    
+                        return highlightWords.length > 0 ? (
+                            <Highlighter
+                                highlightStyle={{ backgroundColor: "#ffc069", padding: 0 }}
+                                searchWords={highlightWords}
+                                autoEscape
+                                textToHighlight={text?.toString() || ""}
+                            />
+                        ) : (
+                            text
+                        );
+                    },
                 };
             })
             .filter(Boolean);

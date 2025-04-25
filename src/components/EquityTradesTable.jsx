@@ -123,7 +123,6 @@ const EquityTradesTable = () => {
             },
         }));
     };
-       
     // Show/hide columns
     const toggleVisibility = (key) =>{ 
         setColumnSettings((prev) => ({
@@ -139,9 +138,11 @@ const EquityTradesTable = () => {
         cols
             .map((col) => {
                 const settings = columnSettings[col.key] || {};
-                const isVisible = settings.visible !== false;
-                const isSearchable = [
-                    "trade_id",
+
+                if (settings.visible === false)
+                return null;
+                const searchable = [
+                        "trade_id",
                         "trade_date",
                         "value_date",
                         "counterparty",
@@ -154,17 +155,36 @@ const EquityTradesTable = () => {
                     "trader_name",
                 ].includes(col.dataIndex);
 
-                return isVisible
-                    ? {
+                const columnSearchProps = searchable ? getColumnSearchProps(col.dataIndex) : {};
+
+                return  {
                         ...col,
-                        ...(isSearchable ? getColumnSearchProps(col.dataIndex) : {}),
+                        ...(searchable ? getColumnSearchProps(col.dataIndex) : {}),
+                        ...columnSearchProps,
                     sorter: (a, b) =>
-                            a[col.dataIndex]?.toString().localeCompare(
-                                b[col.dataIndex]?.toString()
-                            ),
+                        String(a[col.dataIndex]).localeCompare(String(b[col.dataIndex])),
                     fixed: settings.fixed,
-                    }
-                    : null;
+                    render: (text) => {
+                        // Combine global search and column search highlighting
+                        const highlightWords = [];
+                        if (globalSearchTerm) highlightWords.push(globalSearchTerm);
+                        if (searchedColumn === col.dataIndex && searchText) {
+                            highlightWords.push(searchText);
+                        }
+    
+                        return highlightWords.length > 0 ? (
+                            <Highlighter
+                                highlightStyle={{ backgroundColor: "#ffc069", padding: 0 }}
+                                searchWords={highlightWords}
+                                autoEscape
+                                textToHighlight={text?.toString() || ""}
+                            />
+                        ) : (
+                            text
+                        );
+
+                    },
+                };
             })
             .filter(Boolean);
 
