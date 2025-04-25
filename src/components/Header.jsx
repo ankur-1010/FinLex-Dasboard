@@ -1,18 +1,11 @@
 import React, { useState } from "react";
-import {
-    Layout,
-    Avatar,
-    Dropdown,
-    Menu,
-    Button,
-    Grid,
-    Drawer,
-} from "antd";
+import { Layout, Avatar, Dropdown, Menu, Button, Grid, Drawer } from "antd";
 import {
     UserOutlined,
-    DownOutlined,
+    DownCircleFilled,
     MenuOutlined,
 } from "@ant-design/icons";
+
 import { useNavigate } from "react-router-dom";
 
 const { Header } = Layout;
@@ -49,7 +42,7 @@ const AppHeader = () => {
 
     const navItems = (
         <Menu mode="inline" selectable={false}>
-            <Menu.SubMenu key="myapps" title="My Apps" icon={<DownOutlined />}>
+            <Menu.SubMenu key="myapps" title="My Apps">
                 <Menu.Item key="1" onClick={() => navigate("/app1")}>
                     App 1
                 </Menu.Item>
@@ -95,17 +88,21 @@ const AppHeader = () => {
                 ) : (
                     <div style={{ display: "flex", alignItems: "center" }}>
                         <Dropdown overlay={myAppsMenu} trigger={["click"]}>
-                            <Button type="text">
-                                My Apps <DownOutlined />
+                            <Button type="text" color="blue" variant="filled">
+                                My Apps <DownCircleFilled />
                             </Button>
                         </Dropdown>
                         <Button
+                            color="black"
+                            variant="text"
                             onClick={() => navigate("/stpadmin")}
                             style={{ marginLeft: 24 }}
                         >
                             DATA WRAPPER
                         </Button>
                         <Button
+                            color="black"
+                            variant="text"
                             onClick={() => navigate("/stp")}
                             style={{ marginLeft: 16 }}
                         >
@@ -114,10 +111,15 @@ const AppHeader = () => {
                     </div>
                 )}
 
-                <Dropdown overlay={userMenu} placement="bottomRight" trigger={["click"]}>
+                <Dropdown
+                    overlay={userMenu}
+                    placement="bottomRight"
+                    trigger={["click"]}
+                >
                     <Avatar
+                        size={40}
+                        style={{ backgroundColor: "#1677ff" }}
                         icon={<UserOutlined />}
-                        style={{ cursor: "pointer" }}
                     />
                 </Dropdown>
             </Header>

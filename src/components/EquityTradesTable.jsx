@@ -235,7 +235,7 @@ const EquityTradesTable = () => {
                         value={searchInputValue}
                         onChange={(e) => setSearchInputValue(e.target.value)}
                         onKeyDown={handleKeyPress}
-                        style={{ width: "100%", maxWidth: 300, minWidth: 200 }}
+                        style={{ width: "60%", maxWidth: 300, minWidth: 50 }}
                         allowClear
                         onClear={handleClearSearch}
                     />

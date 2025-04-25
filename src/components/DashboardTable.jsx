@@ -3,6 +3,7 @@ import { Button, Row, Col, Space } from "antd";
 import { useNavigate, useLocation } from "react-router-dom";
 import FxTradesTable from "./FxTradesTable";
 import EquityTradesTable from "./EquityTradesTable";
+import styles from "./DashboardTable.module.css"; 
 
 const DashboardTable = () => {
     const navigate = useNavigate();
@@ -38,6 +39,7 @@ const DashboardTable = () => {
                         style={{ width: "100%", justifyContent: "start" }}
                     >
                         <Button
+                            color="blue"                            
                             block={window.innerWidth < 576}
                             type={activeTable === "fxTrades" ? "primary" : "default"}
                             onClick={() => handleTableChange("fxTrades")}
@@ -45,6 +47,7 @@ const DashboardTable = () => {
                             FX Trades
                         </Button>
                         <Button
+                            color="blue" 
                             block={window.innerWidth < 576}
                             type={activeTable === "equityTrades" ? "primary" : "default"}
                             onClick={() => handleTableChange("equityTrades")}
@@ -59,7 +62,7 @@ const DashboardTable = () => {
                 <Col span={24}>
                     {activeTable === "fxTrades" && <FxTradesTable />}
                     {activeTable === "equityTrades" && <EquityTradesTable />}
-                    {!activeTable && <p>Select a table to view its data.</p>}
+                    {!activeTable && <h5>Select a table to view its data.</h5>}
                 </Col>
             </Row>
         </div>
