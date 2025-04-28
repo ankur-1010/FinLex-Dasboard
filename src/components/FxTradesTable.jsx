@@ -17,48 +17,56 @@ const FxTradesTable = () => {
     const [searchInputValue, setSearchInputValue] = useState("");
     const [columnSettings, setColumnSettings] = useState({});
     const [loading, setLoading] = useState(false);
-    const [pagination, setPagination] = useState({
-        current: 1,
-        pageSize: 10,
-        total: 0,
-    });
+    const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
     const searchInput = useRef(null);
 
-    // Fetch (with optional search)
+    // Fetch FX trades (supports global search)
     const fetchFxTrades = async (page = 1, pageSize = 10, search = "") => {
         setLoading(true);
         try {
-            const encodedSearchTerm = encodeURIComponent(search);
+            const encoded = encodeURIComponent(search);
             const url = search
-                ? `http://localhost:3000/api/search-fx-trades?search=${encodedSearchTerm}&limit=${pageSize}&page=${page}`
+                ? `http://localhost:3000/api/search-fx-trades?search=${encoded}&limit=${pageSize}&page=${page}`
                 : `http://localhost:3000/api/fx-trades?limit=${pageSize}&page=${page}`;
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error("Network response was not ok " + response.statusText);
-            }
-            const data = await response.json();
+            const resp = await fetch(url);
+            if (!resp.ok) throw new Error(resp.statusText);
+            const data = await resp.json();
             setFxTrades(data.data || []);
-            setPagination((prev) => ({
-                ...prev,
-                total: data.total || 0,
-                current: page,
-                pageSize,
-            }));
+            setPagination({ current: page, pageSize, total: data.total || 0 });
         } catch (err) {
-            console.error("Error fetching FX trades:", err);
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Fetch for column search, resets to page 1 on new search
+    const handleColumnSearch = async (field, value, page = 1, pageSize = pagination.pageSize) => {
+        setLoading(true);
+        try {
+            const encoded = encodeURIComponent(value);
+            const url = value
+                ? `http://localhost:3000/api/fx-trades/search-by-field?field=${field}&search=${encoded}&limit=${pageSize}&page=${page}`
+                : `http://localhost:3000/api/fx-trades?limit=${pageSize}&page=${page}`;
+            const resp = await fetch(url);
+            if (!resp.ok) throw new Error(resp.statusText);
+            const data = await resp.json();
+            setFxTrades(data.data || []);
+            setPagination({ current: page, pageSize, total: data.total || 0 });
+        } catch (err) {
+            console.error(err);
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchFxTrades(pagination.current, pagination.pageSize);
+        fetchFxTrades();
     }, []);
 
     // Global search handlers
     const handleGlobalSearch = () => {
         setGlobalSearchTerm(searchInputValue);
-        console.log("Global search triggered with value:", searchInputValue);
         fetchFxTrades(1, pagination.pageSize, searchInputValue);
     };
     const handleClearSearch = () => {
@@ -67,124 +75,103 @@ const FxTradesTable = () => {
         fetchFxTrades(1, pagination.pageSize, "");
     };
     const handleKeyPress = (e) => {
-        if (e.key === "Enter") {
-            console.log("Enter key pressed, triggering search");
-            handleGlobalSearch();
+        if (e.key === "Enter") handleGlobalSearch();
+    };
+
+    // Table change (pagination, sorting)
+    const handleTableChange = (pag, filters, sorter) => {
+        const { current, pageSize } = pag;
+        setPagination((p) => ({ ...p, current, pageSize }));
+        if (globalSearchTerm) {
+            fetchFxTrades(current, pageSize, globalSearchTerm);
+        } else if (searchedColumn && searchText) {
+            handleColumnSearch(searchedColumn, searchText, current, pageSize);
+        } else {
+            fetchFxTrades(current, pageSize, "");
         }
     };
 
-    // Pagination / sort / filter
-    const handleTableChange = (pagination) => {
-        fetchFxTrades(pagination.current, pagination.pageSize, globalSearchTerm);
-    };
-
-    // Column-level search props
+    // Column search props
     const getColumnSearchProps = (dataIndex) => ({
-        filterDropdown: ({ setSelectedKeys, selectedKeys }) => (
+        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => (
             <div style={{ padding: 8 }}>
                 <Input
                     ref={searchInput}
                     placeholder={`Search ${dataIndex}`}
                     value={selectedKeys[0]}
-                    onChange={(e) =>
-                        setSelectedKeys(e.target.value ? [e.target.value] : [])
-                    }
+                    onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
                     onPressEnter={() => {
-                        setSearchText(selectedKeys[0] || "");
+                        const val = selectedKeys[0] || "";
+                        setSearchText(val);
                         setSearchedColumn(dataIndex);
+                        handleColumnSearch(dataIndex, val);
+                        confirm();
                     }}
                     style={{ marginBottom: 8, display: "block" }}
                 />
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <Button
+                        type="link"
+                        size="small"
+                        onClick={() => {
+                            clearFilters && clearFilters();
+                            setSelectedKeys([]);
+                            setSearchText("");
+                            setSearchedColumn("");
+                            handleColumnSearch(dataIndex, "");
+                            confirm();
+                        }}
+                    >
+                        Reset
+                    </Button>
+                    <Button
+                        type="primary"
+                        size="small"
+                        icon={<SearchOutlined />}
+                        onClick={() => {
+                            const val = selectedKeys[0] || "";
+                            setSearchText(val);
+                            setSearchedColumn(dataIndex);
+                            handleColumnSearch(dataIndex, val);
+                            confirm();
+                        }}
+                    >
+                        Search
+                    </Button>
+                </div>
             </div>
         ),
         filterIcon: (filtered) => (
             <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
         ),
-        onFilter: (value, record) =>
-            record[dataIndex]
-                ?.toString()
-                .toLowerCase()
-                .includes(value.toLowerCase()),
-        render: (text) =>
-            searchedColumn === dataIndex ? (
+        render: (text) => {
+            const highlights = [];
+            if (globalSearchTerm) highlights.push(globalSearchTerm);
+            if (searchedColumn === dataIndex && searchText) highlights.push(searchText);
+            return highlights.length ? (
                 <Highlighter
                     highlightStyle={{ backgroundColor: "#ffc069", padding: 0 }}
-                    searchWords={[searchText]}
+                    searchWords={highlights}
                     autoEscape
                     textToHighlight={text?.toString() || ""}
                 />
             ) : (
                 text
-            ),
+            );
+        },
     });
 
-    // Pin/unpin & show/hide
+    // Pin/unpin & visibility toggles (same as before)
     const togglePin = (key) =>
         setColumnSettings((prev) => ({
             ...prev,
-            [key]: {
-                ...prev[key],
-                fixed: prev[key]?.fixed === "left" ? undefined : "left",
-            },
+            [key]: { ...prev[key], fixed: prev[key]?.fixed === "left" ? undefined : "left" },
         }));
-    const toggleVisibility = (key) =>{ 
+    const toggleVisibility = (key) =>
         setColumnSettings((prev) => ({
             ...prev,
-            [key]: { ...prev[key], visible: !prev[key]?.visible,},
+            [key]: { ...prev[key], visible: !prev[key]?.visible },
         }));
-    };
-
-    // Apply settings + add search/sort
-    const enhanceColumns = (cols) =>
-        cols
-            .map((col) => {
-                const settings = columnSettings[col.key] || {};
-                if (settings.visible === false) return null;
-                const searchable = [
-                    "trade_id",
-                    "trade_date",
-                    "value_date",
-                    "counterparty",
-                    "product_type",
-                    "buy_sell",
-                    "notional",
-                    "currency",
-                    "rate",
-                    "execution_venue",
-                    "trader_name",
-                    "currency_pair",
-                ].includes(col.dataIndex);
-    
-                const columnSearchProps = searchable ? getColumnSearchProps(col.dataIndex) : {};
-    
-                return {
-                    ...col,
-                    ...columnSearchProps,
-                    sorter: (a, b) =>
-                        String(a[col.dataIndex]).localeCompare(String(b[col.dataIndex])),
-                    fixed: settings.fixed,
-                    render: (text) => {
-                        // Combine global search and column search highlighting
-                        const highlightWords = [];
-                        if (globalSearchTerm) highlightWords.push(globalSearchTerm);
-                        if (searchedColumn === col.dataIndex && searchText) {
-                            highlightWords.push(searchText);
-                        }
-    
-                        return highlightWords.length > 0 ? (
-                            <Highlighter
-                                highlightStyle={{ backgroundColor: "#ffc069", padding: 0 }}
-                                searchWords={highlightWords}
-                                autoEscape
-                                textToHighlight={text?.toString() || ""}
-                            />
-                        ) : (
-                            text
-                        );
-                    },
-                };
-            })
-            .filter(Boolean);
 
     const baseFxColumns = [
         { title: "Trade ID", dataIndex: "trade_id", key: "trade_id" },
@@ -200,9 +187,24 @@ const FxTradesTable = () => {
         { title: "Trader Name", dataIndex: "trader_name", key: "trader_name" },
         { title: "Currency Pair", dataIndex: "currency_pair", key: "currency_pair" },
     ];
+
+    const enhanceColumns = (cols) =>
+        cols
+            .map((col) => {
+                const settings = columnSettings[col.key] || {};
+                if (settings.visible === false) return null;
+                const searchable = baseFxColumns.some((c) => c.dataIndex === col.dataIndex);
+                return {
+                    ...col,
+                    ...(searchable ? getColumnSearchProps(col.dataIndex) : {}),
+                    sorter: (a, b) => String(a[col.dataIndex]).localeCompare(String(b[col.dataIndex])),
+                    fixed: settings.fixed,
+                };
+            })
+            .filter(Boolean);
+
     const columns = enhanceColumns(baseFxColumns);
 
-    // Popover content
     const renderColumnSettings = () => (
         <div style={{ display: "flex", flexDirection: "column", minWidth: 220 }}>
             {baseFxColumns.map((col) => {
@@ -210,10 +212,7 @@ const FxTradesTable = () => {
                 const visible = columnSettings[key]?.visible !== false;
                 const pinned = columnSettings[key]?.fixed === "left";
                 return (
-                    <div
-                        key={key}
-                        style={{ display: "flex", alignItems: "center", marginBottom: 8 }}
-                    >
+                    <div key={key} style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
                         <Tooltip title={visible ? "Hide" : "Show"}>
                             <Button
                                 type="text"
@@ -237,15 +236,8 @@ const FxTradesTable = () => {
 
     return (
         <div style={{ padding: "1rem" }}>
-            {/* Top controls */}
             <div
-                style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    justifyContent: "space-between",
-                    gap: 12,
-                    marginBottom: 16,
-                }}
+                style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 12, marginBottom: 16 }}
             >
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     <Input
@@ -257,30 +249,17 @@ const FxTradesTable = () => {
                         allowClear
                         onClear={handleClearSearch}
                     />
-                    <Button
-                        type="primary"
-                        onClick={handleGlobalSearch}
-                        style={{ minWidth: 100 }}
-                    >
+                    <Button type="primary" onClick={handleGlobalSearch} style={{ minWidth: 100 }}>
                         Search
                     </Button>
                 </div>
-                <Popover
-                    content={renderColumnSettings()}
-                    title="Select Primary Columns"
-                    trigger="click"
-                    placement="bottomRight"
-                >
-                    <Button
-                        type="primary"
-                        style={{ backgroundColor: "green", borderColor: "green", minWidth: 160 }}
-                    >
+                <Popover content={renderColumnSettings()} title="Select Primary Columns" trigger="click" placement="bottomRight">
+                    <Button type="primary" style={{ backgroundColor: "green", borderColor: "green", minWidth: 160 }}>
                         Primary Column
                     </Button>
                 </Popover>
             </div>
 
-            {/* FX Trades table */}
             <Table
                 dataSource={fxTrades}
                 columns={columns}
@@ -297,13 +276,11 @@ const FxTradesTable = () => {
                 }}
                 onChange={handleTableChange}
                 bordered
-                sticky={true}
+                sticky
                 size="middle"
                 style={{ backgroundColor: "#fff", borderRadius: 8 }}
                 title={() => <h2 style={{ fontSize: "1.25rem" }}>FX Trades</h2>}
-                footer={() => (
-                    <div style={{ fontWeight: 500 }}>Total {pagination.total} trades</div>
-                )}
+                footer={() => <div style={{ fontWeight: 500 }}>Total {pagination.total} trades</div>}
                 locale={{ emptyText: "No data available" }}
             />
         </div>
